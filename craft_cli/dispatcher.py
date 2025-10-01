@@ -28,6 +28,8 @@ from craft_cli.errors import ArgumentParsingError, ProvideHelpException
 from craft_cli.helptexts import HelpBuilder, OutputFormat
 from craft_cli.utils import humanize_list
 
+from .messages import Emitter
+
 
 class CommandGroup(NamedTuple):
     """Definition of a command group.
@@ -122,6 +124,15 @@ _DEFAULT_GLOBAL_ARGS = [
         validator=lambda mode: EmitterMode[mode.upper()],
         case_sensitive=False,
     ),
+    GlobalArgument(
+        "format",
+        "option",
+        None,
+        "--format",
+        "Output format for structured data('json' or 'table')",
+        choices=["json", "table", "markdown"],
+        case_sensitive=False,
+    ),
 ]
 
 
@@ -181,7 +192,7 @@ class BaseCommand:
         """
         parser.add_argument(
             "--format",
-            choices=["json","table"],
+            choices=["json", "table"],
             default="table",
             help="Format for structured output",
         )
@@ -198,10 +209,16 @@ class BaseCommand:
         :param parsed_args: The parsed arguments that were defined in :meth:`fill_parser`.
         :return: This method should return ``None`` or the desired process' return code.
         """
-        emit=Emitter()
-        sample_data=[{"name":"App A","version":"1.0.1"},{"name":"App B","version":"2.3.0"}]
-        emit.data(sample_data,format=parsed_args.format)
-        return 0
+        emit = Emitter()
+        sample_data = [
+            {"name": "App A", "version": "1.0.1"},
+            {"name": "App B", "version": "2.3.0"},
+        ]
+        format_arg = getattr(parsed_args, "format", None)
+        final_format = format_arg if format_arg is not None else "table"
+
+        emit.data(sample_data, format=final_format)
+        raise NotImplementedError("Subclasses must implement this method.")
 
 
 class _CustomArgumentParser(argparse.ArgumentParser):
